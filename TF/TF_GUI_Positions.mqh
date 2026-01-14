@@ -37,6 +37,29 @@ void GUI_CleanupPositionMode(int ticket)
 }
 
 //+------------------------------------------------------------------+
+//| Count position modes for display                                |
+//+------------------------------------------------------------------+
+void GUI_CountPositionModes(int &noneCount, int &beCount, int &smartCount)
+{
+   noneCount = 0;
+   beCount = 0;
+   smartCount = 0;
+
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+   {
+      if(!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) continue;
+
+      int type = OrderType();
+      if(type != OP_BUY && type != OP_SELL) continue;
+
+      int posMode = GUI_GetPositionMode(OrderTicket());
+      if(posMode == 1) beCount++;
+      else if(posMode == 2) smartCount++;
+      else noneCount++;
+   }
+}
+
+//+------------------------------------------------------------------+
 //| Display open positions monitor                                   |
 //+------------------------------------------------------------------+
 void GUI_ShowPositionsMonitor(bool showPositions)

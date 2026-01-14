@@ -33,6 +33,16 @@ input bool   ForceBE_Enabled        = false;    // Enable Force Break Even by de
 input double BE_TriggerMultiplier   = 2.0;      // Trigger BE when profit = X × SL distance
 input double BE_LockMultiplier      = 1.0;      // Lock profit at X × SL distance from entry
 
+// ===== Smart SL Settings =====
+input double SmartSL_TriggerMultiplier = 2.0;   // Activate Smart SL when profit = X × SL distance
+input double SmartSL_ProfitLockPct     = 60.0;  // Lock this % of profit when Smart SL triggers
+
+// ===== TP & Timing Rules =====
+input bool   RequireTP             = true;      // Require TP for every trade
+input double MinimumRR             = 1.5;       // Minimum reward:risk ratio (TP/SL)
+input int    MinMinutesBetweenTrades = 30;      // Minimum minutes between trades
+input bool   BlockRevengeTrading   = true;      // Double cooldown after 2+ consecutive losses
+
 // ===== UX =====
 input bool   ShowConfirmPopup       = true;     // Show OK/Cancel confirmation popup
 input bool   EnableChecklist        = true;     // Show checklist in confirm popup
@@ -73,4 +83,10 @@ int    Config_GetATR_TimeframeMinutes() { return ATR_TimeframeMinutes; }
 bool   Config_GetForceBE_Enabled()      { return ForceBE_Enabled; }
 double Config_GetBE_TriggerMultiplier() { return BE_TriggerMultiplier; }
 double Config_GetBE_LockMultiplier()    { return BE_LockMultiplier; }
+double Config_GetSmartSL_TriggerMultiplier() { return SmartSL_TriggerMultiplier; }
+double Config_GetSmartSL_ProfitLockPct()     { return SmartSL_ProfitLockPct; }
+bool   Config_GetRequireTP()            { return RequireTP; }
+double Config_GetMinimumRR()            { return MinimumRR; }
+int    Config_GetMinMinutesBetweenTrades() { return MinMinutesBetweenTrades; }
+bool   Config_GetBlockRevengeTrading()  { return BlockRevengeTrading; }
 //+------------------------------------------------------------------+

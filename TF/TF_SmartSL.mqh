@@ -7,10 +7,8 @@
 //+------------------------------------------------------------------+
 //| Process all open positions for Smart SL                          |
 //+------------------------------------------------------------------+
-void SmartSL_ProcessPositions(bool smartEnabled)
+void SmartSL_ProcessPositions()
 {
-   if(!smartEnabled) return;
-
    double profitLockPct = Config_GetSmartSL_ProfitLockPct();      // 60% default
    double triggerMult = Config_GetSmartSL_TriggerMultiplier();    // 2.0 default
 
@@ -20,6 +18,9 @@ void SmartSL_ProcessPositions(bool smartEnabled)
 
       int type = OrderType();
       if(type != OP_BUY && type != OP_SELL) continue;
+
+      int posMode = GUI_GetPositionMode(OrderTicket());
+      if(posMode != 2) continue;
 
       // Get order details
       string sym = OrderSymbol();

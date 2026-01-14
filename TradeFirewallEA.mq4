@@ -11,13 +11,16 @@
 #include <TF\TF_TradeStats.mqh>
 #include <TF\TF_RiskCalculator.mqh>
 #include <TF\TF_RuleEngine.mqh>
+#include <TF\TF_CooldownPersistence.mqh>
+#include <TF\TF_TradeTiming.mqh>
+#include <TF\TF_TradeLogger.mqh>
 #include <TF\TF_GUI.mqh>
 #include <TF\TF_TradeExecutor.mqh>
 #include <TF\TF_BreakEven.mqh>
+#include <TF\TF_SmartSL.mqh>
 
 // Global state
 bool g_manualLock = false;
-bool g_beEnabled = false;  // Force Break Even toggle
 bool g_showPositions = false;  // Positions monitor toggle
 datetime g_dayStart = 0;
 datetime g_weekStart = 0;
@@ -37,6 +40,7 @@ string g_savedSL = "";
 string g_savedTP = "";
 string g_savedPX = "";
 bool g_inputsSaved = false;
+int g_timerCounter = 0;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -44,9 +48,10 @@ bool g_inputsSaved = false;
 int OnInit()
 {
    TimeUtils_ResetDayWeek(g_dayStart, g_weekStart);
-   g_beEnabled = Config_GetForceBE_Enabled();  // Initialize from config
+   CooldownPersistence_Load(g_cooldownUntil, g_cooldownReason, g_bigWinToday);
    
    TimeTracking_Init();  // Initialize time tracking
+   TradeLogger_InitFile();
    
    GUI_DrawPanel();
    GUI_DrawSLLines();  // Draw initial SL/TP lines
@@ -60,7 +65,7 @@ int OnInit()
       g_inputsSaved = false;
       
       // Update display immediately
-      GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason, g_beEnabled);
+      GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason);
       GUI_DrawSLLines();  // Redraw with restored inputs
    }
    
@@ -83,6 +88,7 @@ void OnDeinit(const int reason)
    }
    
    TimeTracking_Deinit();  // Save time tracking data
+   CooldownPersistence_Save(g_cooldownUntil, g_cooldownReason, g_bigWinToday);
    EventKillTimer();
    GUI_Cleanup();
 }
@@ -92,12 +98,15 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTimer()
 {
+   g_timerCounter++;
+
    // Check if day/week changed - reset cooldowns on new day
    if(TimeUtils_IsNewDay(g_dayStart))
    {
       g_bigWinToday = false;
       g_cooldownUntil = 0;
       g_cooldownReason = "";
+      CooldownPersistence_Clear();
    }
    
    // Update time tracking
@@ -105,15 +114,20 @@ void OnTimer()
    
    // Check last closed trade for cooldown
    if(!g_bigWinToday) // Only check if we haven't hit big win yet today
-      TradeStats_CheckLastTradeForCooldown(g_cooldownUntil, g_cooldownReason, g_bigWinToday);
+      TradeStats_CheckLastTradeForCooldown(g_dayStart, g_cooldownUntil, g_cooldownReason, g_bigWinToday);
    
    // Process Break Even for open positions
-   BreakEven_ProcessPositions(g_beEnabled);
+   BreakEven_ProcessPositions();
+   SmartSL_ProcessPositions();
+
+   CooldownPersistence_Update(g_cooldownUntil, g_cooldownReason, g_bigWinToday);
+   if(g_timerCounter % 30 == 0)
+      TradeLogger_SyncHistory();
    
    // Update SL/TP lines
    GUI_DrawSLLines();
    
-   GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason, g_beEnabled);
+   GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason);
    
    // Refresh positions monitor if visible
    if(g_showPositions)
@@ -156,7 +170,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
          Print("Reset to defaults");
          Comment("");
          ChartRedraw(0);
-         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason, g_beEnabled);
+         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason);
          return;
       }
       
@@ -250,7 +264,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
          g_captureEntryMode = false;
          Comment("");
          ChartRedraw(0);
-         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason, g_beEnabled);
+         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason);
          return;
       }
       
@@ -270,7 +284,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
          g_captureSLMode = false;
          Comment("");
          ChartRedraw(0);
-         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason, g_beEnabled);
+         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason);
          return;
       }
       
@@ -288,7 +302,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
          g_captureTPMode = false;
          Comment("");
          ChartRedraw(0);
-         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason, g_beEnabled);
+         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason);
          return;
       }
    }
@@ -313,18 +327,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
       {
          g_manualLock = !g_manualLock;
          Print("Manual lock set to: ", (g_manualLock ? "ON" : "OFF"));
-         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason, g_beEnabled);
-      }
-      
-      if(sparam == GUI_PFX + "BE")
-      {
-         g_beEnabled = !g_beEnabled;
-         Print("Force Break Even set to: ", (g_beEnabled ? "ON" : "OFF"));
-         
-         // Update button state to show bistable behavior
-         ObjectSetInteger(0, GUI_PFX + "BE", OBJPROP_STATE, g_beEnabled);
-         
-         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason, g_beEnabled);
+         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason);
       }
       
       if(sparam == GUI_PFX + "KILL")
@@ -360,7 +363,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
          Print("Positions monitor: ", (g_showPositions ? "ON" : "OFF"));
       }
       
-      // Handle position-specific buttons (CLOSE, BE, TRAIL)
+      // Handle position-specific buttons (CLOSE, NONE, BE, SMART, TRAIL)
       if(StringFind(sparam, GUI_PFX + "POS_") == 0)
       {
          int ticket = GUI_HandlePositionButton(sparam);
@@ -381,7 +384,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
       {
          GUI_DrawSLLines();  // Draw SL/TP lines when inputs change
          ChartRedraw(0);
-         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason, g_beEnabled);
+         GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason);
       }
    }
 }

@@ -4,6 +4,9 @@
 //+------------------------------------------------------------------+
 #property strict
 
+#include "TF_TradeTiming.mqh"
+#include "TF_TradeLogger.mqh"
+
 //+------------------------------------------------------------------+
 //| Show blocked popup message                                       |
 //+------------------------------------------------------------------+
@@ -98,7 +101,7 @@ bool TradeExecutor_PlaceTrade(int cmd, datetime dayStart, datetime weekStart, bo
 
    // Check trading rules
    string reason;
-   if(!RuleEngine_CanTrade(sym, slPips, dayStart, weekStart, manualLock, cooldownUntil, cooldownReason, reason))
+   if(!RuleEngine_CanTrade(sym, slPips, tpPips, dayStart, weekStart, manualLock, cooldownUntil, cooldownReason, reason))
    {
       Print(reason); 
       TradeExecutor_ShowBlockedPopup(reason);
@@ -240,6 +243,9 @@ bool TradeExecutor_PlaceTrade(int cmd, datetime dayStart, datetime weekStart, bo
       TradeExecutor_ShowBlockedPopup(errMsg);
       return false;
    }
+
+   TradeTiming_SaveLastTradeTime(TimeCurrent());
+   TradeLogger_LogOpenTrade(ticket);
 
    Print("Placed ",
          (orderType==OP_BUY?"BUY MKT":
