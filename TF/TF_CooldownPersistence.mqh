@@ -3,6 +3,7 @@
 //| Persistent cooldown storage using GlobalVariables                |
 //+------------------------------------------------------------------+
 #property strict
+// Dummy comment to mark change.
 
 //+------------------------------------------------------------------+
 //| Save cooldown state to global variables                          |

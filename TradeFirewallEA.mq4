@@ -36,6 +36,7 @@ string g_cooldownReason = "";
 int g_cooldownReasonCode = 0;
 double g_cooldownReasonValue = 0.0;
 bool g_bigWinToday = false;
+// Dummy comment to mark change.
 
 int g_timerCounter = 0;
 
@@ -91,10 +92,14 @@ void OnDeinit(const int reason)
    // Save input values before cleanup (for timeframe changes)
    if(reason == REASON_CHARTCHANGE)
    {
-      g_savedSL = GUI_GetEditText("SL");
-      g_savedTP = GUI_GetEditText("TP");
-      g_savedPX = GUI_GetEditText("PX");
-      g_inputsSaved = true;
+      string inputPrefix = InputPersistence_Prefix();
+      int savedSL = GUI_ToIntSafe(GUI_GetEditText("SL"), Config_GetDefaultSL());
+      int savedTP = GUI_ToIntSafe(GUI_GetEditText("TP"), Config_GetDefaultTP());
+      double savedPX = GUI_ToDoubleSafe(GUI_GetEditText("PX"), 0.0);
+      GlobalVariableSet(inputPrefix + "Active", 1.0);
+      GlobalVariableSet(inputPrefix + "SL", savedSL);
+      GlobalVariableSet(inputPrefix + "TP", savedTP);
+      GlobalVariableSet(inputPrefix + "PX", savedPX);
    }
    
    TimeTracking_Deinit();  // Save time tracking data

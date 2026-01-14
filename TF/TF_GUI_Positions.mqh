@@ -64,6 +64,7 @@ void GUI_CountPositionModes(int &noneCount, int &beCount, int &smartCount)
 //+------------------------------------------------------------------+
 void GUI_ShowPositionsMonitor(bool showPositions)
 {
+   // Dummy comment to mark change.
    if(!showPositions) return;
 
    int X = 5, Y = 365;  // Below main panel
