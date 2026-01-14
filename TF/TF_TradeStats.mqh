@@ -100,7 +100,7 @@ bool TradeStats_HasOpenPositionOnOtherSymbol(string currentSymbol)
 //+------------------------------------------------------------------+
 //| Check recently closed trades and determine cooldown              |
 //+------------------------------------------------------------------+
-void TradeStats_CheckLastTradeForCooldown(datetime &cooldownUntil, string &cooldownReason, bool &bigWinToday)
+void TradeStats_CheckLastTradeForCooldown(datetime dayStart, datetime &cooldownUntil, string &cooldownReason, bool &bigWinToday)
 {
    int total = OrdersHistoryTotal();
    if(total == 0) return;
@@ -180,12 +180,22 @@ void TradeStats_CheckLastTradeForCooldown(datetime &cooldownUntil, string &coold
          int cooldownMinutes = Config_GetCooldownAfterLoss();
          if(cooldownMinutes > 0)
          {
+            int multiplier = 1;
+            if(Config_GetBlockRevengeTrading())
+            {
+               int streak = TradeStats_LossStreakToday(dayStart);
+               if(streak >= 2)
+                  multiplier = 2;
+            }
+
+            cooldownMinutes *= multiplier;
             datetime thisCooldown = closeTime + (cooldownMinutes * 60);
             if(thisCooldown > longestCooldown)
             {
                longestCooldown = thisCooldown;
                int remaining = (int)((thisCooldown - now) / 60);
-               longestReason = "Loss cooldown - " + IntegerToString(remaining) + " min remaining";
+               string prefix = (multiplier > 1) ? "REVENGE BLOCK (2x)" : "Loss cooldown";
+               longestReason = prefix + " - " + IntegerToString(remaining) + " min remaining";
             }
          }
       }

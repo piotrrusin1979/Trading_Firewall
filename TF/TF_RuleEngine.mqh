@@ -4,10 +4,12 @@
 //+------------------------------------------------------------------+
 #property strict
 
+#include "TF_TradeTiming.mqh"
+
 //+------------------------------------------------------------------+
 //| Check if trading is allowed based on all rules                   |
 //+------------------------------------------------------------------+
-bool RuleEngine_CanTrade(string sym, int slPips, datetime dayStart, datetime weekStart, 
+bool RuleEngine_CanTrade(string sym, int slPips, int tpPips, datetime dayStart, datetime weekStart, 
                          bool manualLock, datetime cooldownUntil, string cooldownReason,
                          string &reasonOut)
 {
@@ -110,6 +112,34 @@ bool RuleEngine_CanTrade(string sym, int slPips, datetime dayStart, datetime wee
    {
       reasonOut = "Blocked: SL (total) must be > spread. SL=" + IntegerToString(slPips) +
                   " pips, spread=" + IntegerToString(spreadPipsNow) + " pips.";
+      return false;
+   }
+
+   // Require TP
+   if(Config_GetRequireTP() && tpPips <= 0)
+   {
+      reasonOut = "Blocked: TP is required (set TP > 0)";
+      return false;
+   }
+
+   // Minimum reward:risk ratio
+   double minRR = Config_GetMinimumRR();
+   if(minRR > 0.0 && tpPips > 0)
+   {
+      double rr = (double)tpPips / (double)slPips;
+      if(rr < minRR)
+      {
+         reasonOut = "Blocked: R:R too low (" + DoubleToString(rr, 2) +
+                     " < " + DoubleToString(minRR, 2) + ")";
+         return false;
+      }
+   }
+
+   // Minimum minutes between trades
+   string timingReason = "";
+   if(!TradeTiming_CanTradeNow(Config_GetMinMinutesBetweenTrades(), timingReason))
+   {
+      reasonOut = timingReason;
       return false;
    }
    
