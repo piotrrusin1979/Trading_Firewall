@@ -45,6 +45,11 @@ string InputPersistence_Prefix()
    return "TF_INPUT_" + Symbol() + "_";
 }
 
+string InputPersistence_Prefix()
+{
+   return "TF_INPUT_" + Symbol() + "_";
+}
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
