@@ -50,7 +50,7 @@ int g_timerCounter = 0;
 int OnInit()
 {
    TimeUtils_ResetDayWeek(g_dayStart, g_weekStart);
-   CooldownPersistence_Load(g_cooldownUntil, g_cooldownReason, g_cooldownReasonCode, g_cooldownReasonValue, g_bigWinToday);
+   CooldownPersistence_Load(g_cooldownUntil, g_cooldownReason, g_bigWinToday);
    
    TimeTracking_Init();  // Initialize time tracking
    TradeLogger_InitFile();
@@ -90,8 +90,7 @@ void OnDeinit(const int reason)
    }
    
    TimeTracking_Deinit();  // Save time tracking data
-   CooldownPersistence_Save(g_cooldownUntil, g_cooldownReason, g_cooldownReasonCode,
-                            g_cooldownReasonValue, g_bigWinToday);
+   CooldownPersistence_Save(g_cooldownUntil, g_cooldownReason, g_bigWinToday);
    EventKillTimer();
    GUI_Cleanup();
 }
@@ -109,8 +108,6 @@ void OnTimer()
       g_bigWinToday = false;
       g_cooldownUntil = 0;
       g_cooldownReason = "";
-      g_cooldownReasonCode = 0;
-      g_cooldownReasonValue = 0.0;
       CooldownPersistence_Clear();
    }
    
@@ -119,23 +116,13 @@ void OnTimer()
    
    // Check last closed trade for cooldown
    if(!g_bigWinToday) // Only check if we haven't hit big win yet today
-      TradeStats_CheckLastTradeForCooldown(g_dayStart, g_cooldownUntil, g_cooldownReason,
-                                           g_cooldownReasonCode, g_cooldownReasonValue, g_bigWinToday);
-
-   if(g_cooldownUntil > 0 && TimeCurrent() >= g_cooldownUntil)
-   {
-      g_cooldownUntil = 0;
-      g_cooldownReason = "";
-      g_cooldownReasonCode = 0;
-      g_cooldownReasonValue = 0.0;
-   }
+      TradeStats_CheckLastTradeForCooldown(g_dayStart, g_cooldownUntil, g_cooldownReason, g_bigWinToday);
    
    // Process Break Even for open positions
    BreakEven_ProcessPositions();
    SmartSL_ProcessPositions();
 
-   CooldownPersistence_Update(g_cooldownUntil, g_cooldownReason, g_cooldownReasonCode,
-                              g_cooldownReasonValue, g_bigWinToday);
+   CooldownPersistence_Update(g_cooldownUntil, g_cooldownReason, g_bigWinToday);
    if(g_timerCounter % 30 == 0)
       TradeLogger_SyncHistory();
    
