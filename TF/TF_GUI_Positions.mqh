@@ -250,6 +250,7 @@ int GUI_HandlePositionButton(string sparam)
       int ticket = (int)StrToInteger(ticketStr);
 
       GUI_SetPositionMode(ticket, 0);  // Set to NONE mode
+      SmartSL_ClearStoredDistance(ticket);
       Print("Position #", ticket, " → NONE mode (manual control)");
       return ticket;
    }
@@ -260,6 +261,7 @@ int GUI_HandlePositionButton(string sparam)
       int ticket = (int)StrToInteger(ticketStr);
 
       GUI_SetPositionMode(ticket, 1);  // Set to BE mode
+      SmartSL_ClearStoredDistance(ticket);
       Print("Position #", ticket, " → BE mode (automatic break even)");
       return ticket;
    }
@@ -270,6 +272,16 @@ int GUI_HandlePositionButton(string sparam)
       int ticket = (int)StrToInteger(ticketStr);
 
       GUI_SetPositionMode(ticket, 2);  // Set to SMART mode
+      if(OrderSelect(ticket, SELECT_BY_TICKET))
+      {
+         double entry = OrderOpenPrice();
+         double currentSL = OrderStopLoss();
+         if(currentSL != 0)
+         {
+            double originalSLDistance = MathAbs(entry - currentSL);
+            SmartSL_SetStoredDistance(ticket, originalSLDistance);
+         }
+      }
       Print("Position #", ticket, " → SMART SL mode (60% profit lock)");
       return ticket;
    }
