@@ -300,6 +300,7 @@ int TradeExecutor_KillSwitch()
       {
          closed++;
          Print("KILL SWITCH: Closed #", ticket, " ", sym);
+         TradeLogger_LogClosedTrade(ticket);
       }
       else
       {

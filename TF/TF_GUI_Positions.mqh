@@ -84,6 +84,8 @@ void GUI_ShowPositionsMonitor(bool showPositions)
       double sl = OrderStopLoss();
       double tp = OrderTakeProfit();
       double profit = OrderProfit() + OrderSwap() + OrderCommission();
+      double pip = RiskCalc_PipSize(sym);
+      double vpp = RiskCalc_ValuePerPipPerLot(sym);
       int digits = (int)MarketInfo(sym, MODE_DIGITS);
 
       // Position box background
@@ -109,6 +111,38 @@ void GUI_ShowPositionsMonitor(bool showPositions)
       GUI_CreateLabel("POS_PL_" + IntegerToString(ticket), X+10, posY+40,
                       "P/L: " + profitSign + DoubleToString(profit, 2) + " " + AccountCurrency(), 9);
       ObjectSetInteger(0, GUI_PFX + "POS_PL_" + IntegerToString(ticket), OBJPROP_COLOR, profitColor);
+
+      double slPips = 0.0;
+      double tpPips = 0.0;
+      if(sl > 0)
+      {
+         if(type == OP_BUY)
+            slPips = (sl - openPrice) / pip;
+         else
+            slPips = (openPrice - sl) / pip;
+      }
+
+      if(tp > 0)
+      {
+         if(type == OP_BUY)
+            tpPips = (tp - openPrice) / pip;
+         else
+            tpPips = (openPrice - tp) / pip;
+      }
+
+      double slMoney = slPips * vpp * lots;
+      double tpMoney = tpPips * vpp * lots;
+
+      string slMoneyTxt = "SL: " + DoubleToString(slMoney, 2) + " " + AccountCurrency();
+      string tpMoneyTxt = "TP: " + DoubleToString(tpMoney, 2) + " " + AccountCurrency();
+
+      GUI_CreateLabel("POS_SL_MONEY_" + IntegerToString(ticket), X+10, posY+55, slMoneyTxt, 8);
+      GUI_CreateLabel("POS_TP_MONEY_" + IntegerToString(ticket), X+180, posY+55, tpMoneyTxt, 8);
+
+      color slColor = (slMoney >= 0) ? clrLimeGreen : clrRed;
+      color tpColor = (tpMoney >= 0) ? clrLimeGreen : clrRed;
+      ObjectSetInteger(0, GUI_PFX + "POS_SL_MONEY_" + IntegerToString(ticket), OBJPROP_COLOR, slColor);
+      ObjectSetInteger(0, GUI_PFX + "POS_TP_MONEY_" + IntegerToString(ticket), OBJPROP_COLOR, tpColor);
 
       // Get current mode for this position
       int posMode = GUI_GetPositionMode(ticket);

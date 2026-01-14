@@ -211,6 +211,8 @@ void TradeStats_CheckLastTradeForCooldown(datetime dayStart, datetime &cooldownU
    {
       cooldownUntil = longestCooldown;
       cooldownReason = longestReason;
+      cooldownReasonCode = longestReasonCode;
+      cooldownReasonValue = longestReasonValue;
    }
 }
 

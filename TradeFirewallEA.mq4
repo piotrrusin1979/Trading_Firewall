@@ -33,6 +33,8 @@ bool g_captureTPMode = false;
 // Cooldown tracking
 datetime g_cooldownUntil = 0;
 string g_cooldownReason = "";
+int g_cooldownReasonCode = 0;
+double g_cooldownReasonValue = 0.0;
 bool g_bigWinToday = false;
 
 // Persistent input values across timeframe changes
