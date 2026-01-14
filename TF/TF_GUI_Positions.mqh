@@ -64,6 +64,7 @@ void GUI_CountPositionModes(int &noneCount, int &beCount, int &smartCount)
 //+------------------------------------------------------------------+
 void GUI_ShowPositionsMonitor(bool showPositions)
 {
+   // Dummy comment to mark change.
    if(!showPositions) return;
 
    int X = 5, Y = 365;  // Below main panel
@@ -114,20 +115,23 @@ void GUI_ShowPositionsMonitor(bool showPositions)
 
       double slPips = 0.0;
       double tpPips = 0.0;
-      if(sl > 0)
+      if(pip > 0)
       {
-         if(type == OP_BUY)
-            slPips = (sl - openPrice) / pip;
-         else
-            slPips = (openPrice - sl) / pip;
-      }
+         if(sl > 0)
+         {
+            if(type == OP_BUY)
+               slPips = (sl - openPrice) / pip;
+            else
+               slPips = (openPrice - sl) / pip;
+         }
 
-      if(tp > 0)
-      {
-         if(type == OP_BUY)
-            tpPips = (tp - openPrice) / pip;
-         else
-            tpPips = (openPrice - tp) / pip;
+         if(tp > 0)
+         {
+            if(type == OP_BUY)
+               tpPips = (tp - openPrice) / pip;
+            else
+               tpPips = (openPrice - tp) / pip;
+         }
       }
 
       double slMoney = slPips * vpp * lots;
@@ -136,8 +140,8 @@ void GUI_ShowPositionsMonitor(bool showPositions)
       string slMoneyTxt = "SL: " + DoubleToString(slMoney, 2) + " " + AccountCurrency();
       string tpMoneyTxt = "TP: " + DoubleToString(tpMoney, 2) + " " + AccountCurrency();
 
-      GUI_CreateLabel("POS_SL_MONEY_" + IntegerToString(ticket), X+10, posY+55, slMoneyTxt, 8);
-      GUI_CreateLabel("POS_TP_MONEY_" + IntegerToString(ticket), X+180, posY+55, tpMoneyTxt, 8);
+      GUI_CreateLabel("POS_SL_MONEY_" + IntegerToString(ticket), X+120, posY+40, slMoneyTxt, 8);
+      GUI_CreateLabel("POS_TP_MONEY_" + IntegerToString(ticket), X+230, posY+40, tpMoneyTxt, 8);
 
       color slColor = (slMoney >= 0) ? clrLimeGreen : clrRed;
       color tpColor = (tpMoney >= 0) ? clrLimeGreen : clrRed;
@@ -246,6 +250,7 @@ int GUI_HandlePositionButton(string sparam)
       int ticket = (int)StrToInteger(ticketStr);
 
       GUI_SetPositionMode(ticket, 0);  // Set to NONE mode
+      SmartSL_ClearStoredDistance(ticket);
       Print("Position #", ticket, " → NONE mode (manual control)");
       return ticket;
    }
@@ -256,6 +261,7 @@ int GUI_HandlePositionButton(string sparam)
       int ticket = (int)StrToInteger(ticketStr);
 
       GUI_SetPositionMode(ticket, 1);  // Set to BE mode
+      SmartSL_ClearStoredDistance(ticket);
       Print("Position #", ticket, " → BE mode (automatic break even)");
       return ticket;
    }
@@ -266,6 +272,16 @@ int GUI_HandlePositionButton(string sparam)
       int ticket = (int)StrToInteger(ticketStr);
 
       GUI_SetPositionMode(ticket, 2);  // Set to SMART mode
+      if(OrderSelect(ticket, SELECT_BY_TICKET))
+      {
+         double entry = OrderOpenPrice();
+         double currentSL = OrderStopLoss();
+         if(currentSL != 0)
+         {
+            double originalSLDistance = MathAbs(entry - currentSL);
+            SmartSL_SetStoredDistance(ticket, originalSLDistance);
+         }
+      }
       Print("Position #", ticket, " → SMART SL mode (60% profit lock)");
       return ticket;
    }
