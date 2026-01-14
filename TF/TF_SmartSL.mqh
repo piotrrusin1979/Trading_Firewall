@@ -34,8 +34,6 @@ void SmartSL_ProcessPositions()
       // Calculate original SL distance from entry
       double originalSLDistance = MathAbs(entry - currentSL);
       double storedDistance = SmartSL_GetStoredDistance(ticket);
-      if(storedDistance <= 0 && originalSLDistance >= 0.00001)
-         SmartSL_SetStoredDistance(ticket, originalSLDistance);
       double baseDistance = (storedDistance > 0) ? storedDistance : originalSLDistance;
       if(baseDistance < 0.00001) continue; // No meaningful SL
 
@@ -180,5 +178,12 @@ void SmartSL_SetStoredDistance(int ticket, double distance)
    if(distance <= 0) return;
    string key = SmartSL_DistanceKey(ticket);
    GlobalVariableSet(key, distance);
+}
+
+void SmartSL_ClearStoredDistance(int ticket)
+{
+   string key = SmartSL_DistanceKey(ticket);
+   if(GlobalVariableCheck(key))
+      GlobalVariableDel(key);
 }
 //+------------------------------------------------------------------+
