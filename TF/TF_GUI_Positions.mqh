@@ -7,6 +7,9 @@
 // Per-position mode tracking (stored in GlobalVariables for persistence)
 // Mode: 0 = NONE, 1 = BE, 2 = SMART
 
+void SmartSL_ClearStoredDistance(int ticket);
+void SmartSL_SetStoredDistance(int ticket, double distance);
+
 //+------------------------------------------------------------------+
 //| Get position mode from GlobalVariables                           |
 //+------------------------------------------------------------------+
