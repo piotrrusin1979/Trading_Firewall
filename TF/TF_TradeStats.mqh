@@ -103,6 +103,7 @@ bool TradeStats_HasOpenPositionOnOtherSymbol(string currentSymbol)
 void TradeStats_CheckLastTradeForCooldown(datetime dayStart, datetime &cooldownUntil, string &cooldownReason,
                                           int &cooldownReasonCode, double &cooldownReasonValue, bool &bigWinToday)
 {
+   // Dummy comment to mark change.
    int total = OrdersHistoryTotal();
    if(total == 0) return;
    
@@ -139,7 +140,7 @@ void TradeStats_CheckLastTradeForCooldown(datetime dayStart, datetime &cooldownU
       if(profitPct >= Config_GetBigWinPct())
       {
          foundBigWin = true;
-         datetime thisCooldown = closeTime + 86400; // End of day
+         datetime thisCooldown = dayStart + 86400; // End of current day
          if(thisCooldown > longestCooldown)
          {
             longestCooldown = thisCooldown;
