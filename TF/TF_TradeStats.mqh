@@ -130,6 +130,9 @@ void TradeStats_CheckLastTradeForCooldown(datetime dayStart, datetime &cooldownU
       
       double profit = OrderProfit() + OrderSwap() + OrderCommission();
       double equity = AccountEquity();
+      if(equity <= 0)
+         continue;
+
       double profitPct = (profit / equity) * 100.0;
       
       // Check for big win (blocks rest of day)

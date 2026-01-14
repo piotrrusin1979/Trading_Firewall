@@ -37,12 +37,12 @@ int g_cooldownReasonCode = 0;
 double g_cooldownReasonValue = 0.0;
 bool g_bigWinToday = false;
 
-// Persistent input values across timeframe changes
-string g_savedSL = "";
-string g_savedTP = "";
-string g_savedPX = "";
-bool g_inputsSaved = false;
 int g_timerCounter = 0;
+
+string InputPersistence_Prefix()
+{
+   return "TF_INPUT_" + Symbol() + "_";
+}
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -60,12 +60,19 @@ int OnInit()
    GUI_DrawSLLines();  // Draw initial SL/TP lines
    
    // Restore saved inputs after timeframe change
-   if(g_inputsSaved)
+   string inputPrefix = InputPersistence_Prefix();
+   if(GlobalVariableCheck(inputPrefix + "Active"))
    {
-      GUI_SetEditText("SL", g_savedSL);
-      GUI_SetEditText("TP", g_savedTP);
-      GUI_SetEditText("PX", g_savedPX);
-      g_inputsSaved = false;
+      int savedSL = (int)GlobalVariableGet(inputPrefix + "SL");
+      int savedTP = (int)GlobalVariableGet(inputPrefix + "TP");
+      double savedPX = GlobalVariableGet(inputPrefix + "PX");
+      GUI_SetEditText("SL", IntegerToString(savedSL));
+      GUI_SetEditText("TP", IntegerToString(savedTP));
+      GUI_SetEditText("PX", DoubleToString(savedPX, Digits));
+      GlobalVariableDel(inputPrefix + "Active");
+      GlobalVariableDel(inputPrefix + "SL");
+      GlobalVariableDel(inputPrefix + "TP");
+      GlobalVariableDel(inputPrefix + "PX");
       
       // Update display immediately
       GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason);

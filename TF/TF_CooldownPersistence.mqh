@@ -17,12 +17,9 @@ void CooldownPersistence_Save(datetime cooldownUntil, string cooldownReason, int
    GlobalVariableSet(prefix + "ReasonCode", (double)cooldownReasonCode);
    GlobalVariableSet(prefix + "ReasonValue", cooldownReasonValue);
 
-   // Store reason as a simple flag (since we can't store strings in GlobalVariables)
-   // We'll reconstruct the reason on load by checking recent trades
    if(cooldownUntil > 0)
    {
       GlobalVariableSet(prefix + "Active", 1.0);
-      GlobalVariableSet(prefix + "Reason", StringLen(cooldownReason) > 0 ? 1.0 : 0.0);
    }
    else
    {
@@ -132,8 +129,6 @@ void CooldownPersistence_Clear()
       GlobalVariableDel(prefix + "Until");
    if(GlobalVariableCheck(prefix + "BigWin"))
       GlobalVariableDel(prefix + "BigWin");
-   if(GlobalVariableCheck(prefix + "Reason"))
-      GlobalVariableDel(prefix + "Reason");
    if(GlobalVariableCheck(prefix + "ReasonCode"))
       GlobalVariableDel(prefix + "ReasonCode");
    if(GlobalVariableCheck(prefix + "ReasonValue"))
@@ -146,7 +141,10 @@ void CooldownPersistence_Clear()
 void CooldownPersistence_Update(datetime cooldownUntil, string cooldownReason, int cooldownReasonCode,
                                 double cooldownReasonValue, bool bigWinToday)
 {
-   string prefix = "TF_CD_" + Symbol() + "_";
+   static datetime lastCooldownUntil = 0;
+   static int lastReasonCode = 0;
+   static double lastReasonValue = 0.0;
+   static bool lastBigWinToday = false;
 
    // Check if cooldown expired
    if(cooldownUntil > 0 && TimeCurrent() >= cooldownUntil)
@@ -156,7 +154,19 @@ void CooldownPersistence_Update(datetime cooldownUntil, string cooldownReason, i
       return;
    }
 
+   if(cooldownUntil == lastCooldownUntil &&
+      cooldownReasonCode == lastReasonCode &&
+      cooldownReasonValue == lastReasonValue &&
+      bigWinToday == lastBigWinToday)
+   {
+      return;
+   }
+
    // Save current state
    CooldownPersistence_Save(cooldownUntil, cooldownReason, cooldownReasonCode, cooldownReasonValue, bigWinToday);
+   lastCooldownUntil = cooldownUntil;
+   lastReasonCode = cooldownReasonCode;
+   lastReasonValue = cooldownReasonValue;
+   lastBigWinToday = bigWinToday;
 }
 //+------------------------------------------------------------------+
