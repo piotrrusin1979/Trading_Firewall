@@ -33,7 +33,9 @@ void SmartSL_ProcessPositions()
 
       // Calculate original SL distance from entry
       double originalSLDistance = MathAbs(entry - currentSL);
-      if(originalSLDistance < 0.00001) continue; // No meaningful SL
+      double storedDistance = SmartSL_GetStoredDistance(ticket);
+      double baseDistance = (storedDistance > 0) ? storedDistance : originalSLDistance;
+      if(baseDistance < 0.00001) continue; // No meaningful SL
 
       // Get current price
       RefreshRates();
@@ -42,8 +44,20 @@ void SmartSL_ProcessPositions()
       // Calculate current profit in price terms
       double currentProfit = (type == OP_BUY) ? (currentPrice - entry) : (entry - currentPrice);
 
+      bool slOnNegativeSide = (type == OP_BUY) ? (currentSL < entry) : (currentSL > entry);
+      if(slOnNegativeSide && currentProfit >= originalSLDistance)
+      {
+         if(SmartSL_ModifySL(ticket, entry))
+         {
+            int digits = (int)MarketInfo(sym, MODE_DIGITS);
+            Print("Smart SL #", ticket, " ", sym, " → SL: ",
+                  DoubleToString(entry, digits), " (break even)");
+         }
+         continue;
+      }
+
       // Check if profit reached trigger level (2x original SL distance)
-      double triggerDistance = originalSLDistance * triggerMult;
+      double triggerDistance = baseDistance * triggerMult;
 
       if(currentProfit >= triggerDistance)
       {
@@ -141,5 +155,35 @@ int SmartSL_GetActiveCount()
    }
 
    return count;
+}
+
+//+------------------------------------------------------------------+
+//| Helpers for Smart SL original distance tracking                  |
+//+------------------------------------------------------------------+
+string SmartSL_DistanceKey(int ticket)
+{
+   return "TF_SMARTSL_DIST_" + IntegerToString(ticket);
+}
+
+double SmartSL_GetStoredDistance(int ticket)
+{
+   string key = SmartSL_DistanceKey(ticket);
+   if(GlobalVariableCheck(key))
+      return GlobalVariableGet(key);
+   return 0.0;
+}
+
+void SmartSL_SetStoredDistance(int ticket, double distance)
+{
+   if(distance <= 0) return;
+   string key = SmartSL_DistanceKey(ticket);
+   GlobalVariableSet(key, distance);
+}
+
+void SmartSL_ClearStoredDistance(int ticket)
+{
+   string key = SmartSL_DistanceKey(ticket);
+   if(GlobalVariableCheck(key))
+      GlobalVariableDel(key);
 }
 //+------------------------------------------------------------------+
