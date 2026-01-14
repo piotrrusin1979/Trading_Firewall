@@ -33,14 +33,6 @@ void CooldownPersistence_Save(datetime cooldownUntil, string cooldownReason, int
 }
 
 //+------------------------------------------------------------------+
-//| Backward-compatible save (legacy signature)                      |
-//+------------------------------------------------------------------+
-void CooldownPersistence_Save(datetime cooldownUntil, string cooldownReason, bool bigWinToday)
-{
-   CooldownPersistence_Save(cooldownUntil, cooldownReason, 0, 0.0, bigWinToday);
-}
-
-//+------------------------------------------------------------------+
 //| Load cooldown state from global variables                        |
 //+------------------------------------------------------------------+
 void CooldownPersistence_Load(datetime &cooldownUntil, string &cooldownReason, int &cooldownReasonCode,
@@ -128,16 +120,6 @@ void CooldownPersistence_Load(datetime &cooldownUntil, string &cooldownReason, i
 }
 
 //+------------------------------------------------------------------+
-//| Backward-compatible load (legacy signature)                      |
-//+------------------------------------------------------------------+
-void CooldownPersistence_Load(datetime &cooldownUntil, string &cooldownReason, bool &bigWinToday)
-{
-   int reasonCode = 0;
-   double reasonValue = 0.0;
-   CooldownPersistence_Load(cooldownUntil, cooldownReason, reasonCode, reasonValue, bigWinToday);
-}
-
-//+------------------------------------------------------------------+
 //| Clear persisted cooldown data                                    |
 //+------------------------------------------------------------------+
 void CooldownPersistence_Clear()
@@ -176,13 +158,5 @@ void CooldownPersistence_Update(datetime cooldownUntil, string cooldownReason, i
 
    // Save current state
    CooldownPersistence_Save(cooldownUntil, cooldownReason, cooldownReasonCode, cooldownReasonValue, bigWinToday);
-}
-
-//+------------------------------------------------------------------+
-//| Backward-compatible update (legacy signature)                    |
-//+------------------------------------------------------------------+
-void CooldownPersistence_Update(datetime cooldownUntil, string cooldownReason, bool bigWinToday)
-{
-   CooldownPersistence_Update(cooldownUntil, cooldownReason, 0, 0.0, bigWinToday);
 }
 //+------------------------------------------------------------------+
