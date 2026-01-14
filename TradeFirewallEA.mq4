@@ -37,12 +37,12 @@ int g_cooldownReasonCode = 0;
 double g_cooldownReasonValue = 0.0;
 bool g_bigWinToday = false;
 
-// Persistent input values across timeframe changes
-string g_savedSL = "";
-string g_savedTP = "";
-string g_savedPX = "";
-bool g_inputsSaved = false;
 int g_timerCounter = 0;
+
+string InputPersistence_Prefix()
+{
+   return "TF_INPUT_" + Symbol() + "_";
+}
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -50,7 +50,8 @@ int g_timerCounter = 0;
 int OnInit()
 {
    TimeUtils_ResetDayWeek(g_dayStart, g_weekStart);
-   CooldownPersistence_Load(g_cooldownUntil, g_cooldownReason, g_bigWinToday);
+   CooldownPersistence_Load(g_cooldownUntil, g_cooldownReason, g_cooldownReasonCode,
+                            g_cooldownReasonValue, g_bigWinToday);
    
    TimeTracking_Init();  // Initialize time tracking
    TradeLogger_InitFile();
@@ -59,12 +60,19 @@ int OnInit()
    GUI_DrawSLLines();  // Draw initial SL/TP lines
    
    // Restore saved inputs after timeframe change
-   if(g_inputsSaved)
+   string inputPrefix = InputPersistence_Prefix();
+   if(GlobalVariableCheck(inputPrefix + "Active"))
    {
-      GUI_SetEditText("SL", g_savedSL);
-      GUI_SetEditText("TP", g_savedTP);
-      GUI_SetEditText("PX", g_savedPX);
-      g_inputsSaved = false;
+      int savedSL = (int)GlobalVariableGet(inputPrefix + "SL");
+      int savedTP = (int)GlobalVariableGet(inputPrefix + "TP");
+      double savedPX = GlobalVariableGet(inputPrefix + "PX");
+      GUI_SetEditText("SL", IntegerToString(savedSL));
+      GUI_SetEditText("TP", IntegerToString(savedTP));
+      GUI_SetEditText("PX", DoubleToString(savedPX, Digits));
+      GlobalVariableDel(inputPrefix + "Active");
+      GlobalVariableDel(inputPrefix + "SL");
+      GlobalVariableDel(inputPrefix + "TP");
+      GlobalVariableDel(inputPrefix + "PX");
       
       // Update display immediately
       GUI_UpdateStatus(g_dayStart, g_weekStart, g_manualLock, g_cooldownUntil, g_cooldownReason);
@@ -83,14 +91,19 @@ void OnDeinit(const int reason)
    // Save input values before cleanup (for timeframe changes)
    if(reason == REASON_CHARTCHANGE)
    {
-      g_savedSL = GUI_GetEditText("SL");
-      g_savedTP = GUI_GetEditText("TP");
-      g_savedPX = GUI_GetEditText("PX");
-      g_inputsSaved = true;
+      string inputPrefix = InputPersistence_Prefix();
+      int savedSL = GUI_ToIntSafe(GUI_GetEditText("SL"), Config_GetDefaultSL());
+      int savedTP = GUI_ToIntSafe(GUI_GetEditText("TP"), Config_GetDefaultTP());
+      double savedPX = GUI_ToDoubleSafe(GUI_GetEditText("PX"), 0.0);
+      GlobalVariableSet(inputPrefix + "Active", 1.0);
+      GlobalVariableSet(inputPrefix + "SL", savedSL);
+      GlobalVariableSet(inputPrefix + "TP", savedTP);
+      GlobalVariableSet(inputPrefix + "PX", savedPX);
    }
    
    TimeTracking_Deinit();  // Save time tracking data
-   CooldownPersistence_Save(g_cooldownUntil, g_cooldownReason, g_bigWinToday);
+   CooldownPersistence_Save(g_cooldownUntil, g_cooldownReason, g_cooldownReasonCode,
+                            g_cooldownReasonValue, g_bigWinToday);
    EventKillTimer();
    GUI_Cleanup();
 }
@@ -108,6 +121,8 @@ void OnTimer()
       g_bigWinToday = false;
       g_cooldownUntil = 0;
       g_cooldownReason = "";
+      g_cooldownReasonCode = 0;
+      g_cooldownReasonValue = 0.0;
       CooldownPersistence_Clear();
    }
    
@@ -116,13 +131,15 @@ void OnTimer()
    
    // Check last closed trade for cooldown
    if(!g_bigWinToday) // Only check if we haven't hit big win yet today
-      TradeStats_CheckLastTradeForCooldown(g_dayStart, g_cooldownUntil, g_cooldownReason, g_bigWinToday);
+      TradeStats_CheckLastTradeForCooldown(g_dayStart, g_cooldownUntil, g_cooldownReason,
+                                           g_cooldownReasonCode, g_cooldownReasonValue, g_bigWinToday);
    
    // Process Break Even for open positions
    BreakEven_ProcessPositions();
    SmartSL_ProcessPositions();
 
-   CooldownPersistence_Update(g_cooldownUntil, g_cooldownReason, g_bigWinToday);
+   CooldownPersistence_Update(g_cooldownUntil, g_cooldownReason, g_cooldownReasonCode,
+                              g_cooldownReasonValue, g_bigWinToday);
    if(g_timerCounter % 30 == 0)
       TradeLogger_SyncHistory();
    
