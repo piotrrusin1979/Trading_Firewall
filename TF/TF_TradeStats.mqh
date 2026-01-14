@@ -139,7 +139,7 @@ void TradeStats_CheckLastTradeForCooldown(datetime dayStart, datetime &cooldownU
       if(profitPct >= Config_GetBigWinPct())
       {
          foundBigWin = true;
-         datetime thisCooldown = dayStart + 86400; // End of current day
+         datetime thisCooldown = closeTime + 86400; // End of day
          if(thisCooldown > longestCooldown)
          {
             longestCooldown = thisCooldown;
