@@ -100,7 +100,8 @@ bool TradeStats_HasOpenPositionOnOtherSymbol(string currentSymbol)
 //+------------------------------------------------------------------+
 //| Check recently closed trades and determine cooldown              |
 //+------------------------------------------------------------------+
-void TradeStats_CheckLastTradeForCooldown(datetime &cooldownUntil, string &cooldownReason, bool &bigWinToday)
+void TradeStats_CheckLastTradeForCooldown(datetime dayStart, datetime &cooldownUntil, string &cooldownReason,
+                                          int &cooldownReasonCode, double &cooldownReasonValue, bool &bigWinToday)
 {
    int total = OrdersHistoryTotal();
    if(total == 0) return;
@@ -108,12 +109,11 @@ void TradeStats_CheckLastTradeForCooldown(datetime &cooldownUntil, string &coold
    datetime now = TimeCurrent();
    datetime longestCooldown = 0;
    string longestReason = "";
+   int longestReasonCode = 0;
+   double longestReasonValue = 0.0;
    bool foundBigWin = false;
    
-   // Check last 10 closed trades (or all recent trades from last minute)
-   int checkCount = MathMin(10, total);
-   
-   for(int i = total - 1; i >= total - checkCount && i >= 0; i--)
+   for(int i = total - 1; i >= 0; i--)
    {
       if(!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY)) continue;
       
@@ -122,8 +122,7 @@ void TradeStats_CheckLastTradeForCooldown(datetime &cooldownUntil, string &coold
       
       datetime closeTime = OrderCloseTime();
       
-      // Only check trades closed in the last 2 minutes (to catch Kill Switch bulk closes)
-      if(now - closeTime > 120) break;
+      if(closeTime < dayStart) break;
       
       double profit = OrderProfit() + OrderSwap() + OrderCommission();
       double equity = AccountEquity();
@@ -134,10 +133,12 @@ void TradeStats_CheckLastTradeForCooldown(datetime &cooldownUntil, string &coold
       {
          foundBigWin = true;
          datetime thisCooldown = closeTime + 86400; // End of day
-         if(thisCooldown > longestCooldown)
+         if(thisCooldown > now && thisCooldown > longestCooldown)
          {
             longestCooldown = thisCooldown;
             longestReason = "Big win (" + DoubleToString(profitPct, 1) + "%) - done for today";
+            longestReasonCode = 4;
+            longestReasonValue = profitPct;
          }
          continue;
       }
@@ -147,12 +148,14 @@ void TradeStats_CheckLastTradeForCooldown(datetime &cooldownUntil, string &coold
       {
          int cooldownMinutes = Config_GetCooldownAfterBigLoss();
          datetime thisCooldown = closeTime + (cooldownMinutes * 60);
-         if(thisCooldown > longestCooldown)
+         if(thisCooldown > now && thisCooldown > longestCooldown)
          {
             longestCooldown = thisCooldown;
             int remaining = (int)((thisCooldown - now) / 60);
             longestReason = "Big loss (" + DoubleToString(profitPct, 1) + "%) - " + 
                            IntegerToString(remaining) + " min remaining";
+            longestReasonCode = 3;
+            longestReasonValue = profitPct;
          }
          continue;
       }
@@ -164,11 +167,13 @@ void TradeStats_CheckLastTradeForCooldown(datetime &cooldownUntil, string &coold
          if(cooldownMinutes > 0)
          {
             datetime thisCooldown = closeTime + (cooldownMinutes * 60);
-            if(thisCooldown > longestCooldown)
+            if(thisCooldown > now && thisCooldown > longestCooldown)
             {
                longestCooldown = thisCooldown;
                int remaining = (int)((thisCooldown - now) / 60);
                longestReason = "Win cooldown - " + IntegerToString(remaining) + " min remaining";
+               longestReasonCode = 1;
+               longestReasonValue = 0.0;
             }
          }
          continue;
@@ -180,12 +185,24 @@ void TradeStats_CheckLastTradeForCooldown(datetime &cooldownUntil, string &coold
          int cooldownMinutes = Config_GetCooldownAfterLoss();
          if(cooldownMinutes > 0)
          {
+            int multiplier = 1;
+            if(Config_GetBlockRevengeTrading())
+            {
+               int streak = TradeStats_LossStreakToday(dayStart);
+               if(streak >= 2)
+                  multiplier = 2;
+            }
+
+            cooldownMinutes *= multiplier;
             datetime thisCooldown = closeTime + (cooldownMinutes * 60);
-            if(thisCooldown > longestCooldown)
+            if(thisCooldown > now && thisCooldown > longestCooldown)
             {
                longestCooldown = thisCooldown;
                int remaining = (int)((thisCooldown - now) / 60);
-               longestReason = "Loss cooldown - " + IntegerToString(remaining) + " min remaining";
+               string prefix = (multiplier > 1) ? "REVENGE BLOCK (2x)" : "Loss cooldown";
+               longestReason = prefix + " - " + IntegerToString(remaining) + " min remaining";
+               longestReasonCode = (multiplier > 1) ? 5 : 2;
+               longestReasonValue = 0.0;
             }
          }
       }
@@ -201,7 +218,19 @@ void TradeStats_CheckLastTradeForCooldown(datetime &cooldownUntil, string &coold
    {
       cooldownUntil = longestCooldown;
       cooldownReason = longestReason;
+      cooldownReasonCode = longestReasonCode;
+      cooldownReasonValue = longestReasonValue;
    }
+}
+
+//+------------------------------------------------------------------+
+//| Backward-compatible cooldown check (legacy signature)            |
+//+------------------------------------------------------------------+
+void TradeStats_CheckLastTradeForCooldown(datetime dayStart, datetime &cooldownUntil, string &cooldownReason, bool &bigWinToday)
+{
+   int reasonCode = 0;
+   double reasonValue = 0.0;
+   TradeStats_CheckLastTradeForCooldown(dayStart, cooldownUntil, cooldownReason, reasonCode, reasonValue, bigWinToday);
 }
 
 //+------------------------------------------------------------------+

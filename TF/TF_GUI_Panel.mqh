@@ -33,9 +33,8 @@ void GUI_DrawPanel()
    GUI_CreateButton("BUY",  X+10,  Y+78,  85, 28, "BUY");
    GUI_CreateButton("SELL", X+105, Y+78,  85, 28, "SELL");
    GUI_CreateButton("LOCK", X+200, Y+78,  70, 28, "LOCK");
-   GUI_CreateButton("BE",   X+280, Y+78,  60, 28, "BE");
-   GUI_CreateButton("KILL", X+350, Y+78,  70, 28, "KILL");
-   GUI_CreateButton("POS",  X+430, Y+78,  90, 28, "POSITIONS");
+   GUI_CreateButton("KILL", X+280, Y+78,  70, 28, "KILL");
+   GUI_CreateButton("POS",  X+360, Y+78,  90, 28, "POSITIONS");
    
    // Set button colors
    ObjectSetInteger(0, GUI_PFX + "KILL", OBJPROP_BGCOLOR, clrDarkRed);
@@ -71,7 +70,7 @@ void GUI_DrawPanel()
 //| Update panel status                                              |
 //+------------------------------------------------------------------+
 void GUI_UpdateStatus(datetime dayStart, datetime weekStart, bool manualLock,
-                      datetime cooldownUntil, string cooldownReason, bool beEnabled)
+                      datetime cooldownUntil, string cooldownReason)
 {
    // Check for day/week reset
    if(TimeUtils_IsNewDay(dayStart) || TimeUtils_IsNewWeek(weekStart))
@@ -189,10 +188,14 @@ void GUI_UpdateStatus(datetime dayStart, datetime weekStart, bool manualLock,
       cooldownTxt = cooldownReason;
    GUI_CreateLabel("CD_L", 15, 220, "Cooldown: " + cooldownTxt, 9);
    
-   // Break Even status
-   int beActive = BreakEven_GetActiveCount();
-   string beTxt = beEnabled ? ("ON (" + IntegerToString(beActive) + " active)") : "OFF";
-   GUI_CreateLabel("BE_L", 15, 240, "Force BE: " + beTxt, 9);
+   int noneCount = 0;
+   int beCount = 0;
+   int smartCount = 0;
+   GUI_CountPositionModes(noneCount, beCount, smartCount);
+   string modeTxt = "Modes: NONE " + IntegerToString(noneCount) +
+                    " | BE " + IntegerToString(beCount) +
+                    " | SMART " + IntegerToString(smartCount);
+   GUI_CreateLabel("MODE_L", 15, 240, modeTxt, 9);
 
    // Remaining budgets
    GUI_CreateLabel("REMLOSS_L", 15, 260, "Daily loss remain: " + dailyRemainingTxt, 9);

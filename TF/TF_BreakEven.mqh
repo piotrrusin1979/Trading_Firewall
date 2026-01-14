@@ -7,9 +7,8 @@
 //+------------------------------------------------------------------+
 //| Process all open positions for Break Even                        |
 //+------------------------------------------------------------------+
-void BreakEven_ProcessPositions(bool beEnabled)
+void BreakEven_ProcessPositions()
 {
-   if(!beEnabled) return;
    
    double triggerMult = Config_GetBE_TriggerMultiplier();
    double lockMult = Config_GetBE_LockMultiplier();
@@ -20,7 +19,10 @@ void BreakEven_ProcessPositions(bool beEnabled)
       
       int type = OrderType();
       if(type != OP_BUY && type != OP_SELL) continue;
-      
+
+      int posMode = GUI_GetPositionMode(OrderTicket());
+      if(posMode != 1) continue;
+
       // Get order details
       string sym = OrderSymbol();
       double entry = OrderOpenPrice();
